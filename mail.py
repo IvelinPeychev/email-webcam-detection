@@ -1,6 +1,8 @@
 import glob
 import cv2
 import emailing
+import os
+from threading import Thread
 
 # Blue Green Red
 
@@ -11,6 +13,14 @@ video = cv2.VideoCapture(0)
 first_frame = None
 status_list = []
 count = 1
+
+
+def clean_folder():
+    # Clean the folder
+    images = glob.glob('images/*.png')
+    for image in images:
+        os.remove(image)
+
 while True:
     status = 0
     # Loading the video
@@ -61,7 +71,17 @@ while True:
     status_list.append(status)
     status_list = status_list[-2:]
     if status_list[0] == 1 and status_list[1] == 0:
-        emailing.send_email()
+        # Creating a thread for sending email, making args to tuple with comma to avoid an error
+        email_thread = Thread(target=emailing.send_email, args=(image, ))
+        # Allowing the thread to be executed in the  background
+        email_thread.daemon = True
+        clean_thread = Thread(target=clean_folder)
+        clean_thread.daemon = True
+
+        # calling the threads
+        email_thread.start()
+        clean_thread.start()
+
 
 
     cv2.imshow('Video', frame)
