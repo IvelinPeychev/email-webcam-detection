@@ -6,14 +6,45 @@ video = cv2.VideoCapture(0)
 
 # To wait for camera to load if needed
 # time.sleep(1)
-
+first_frame = None
 while True:
     check, frame = video.read()
-    cv2.imshow('My video', frame)
+    # Set the gray scale as it contains low amount of data compared to BlueGreenRed
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # To make the calculation more efficient by blurring
+    gray_frame_gau = cv2.GaussianBlur(gray_frame, (21, 21), 0)
 
-# Create a keyboard object
+    # Capturing the first frame that we will use for comparison
+    if first_frame is None:
+        first_frame = gray_frame_gau
+
+    # Check for difference
+    delta_frame = cv2.absdiff(first_frame, gray_frame_gau)
+
+    # comparing the black == 0  and white == 255
+    thresh_frame = cv2.threshold(delta_frame, 60, 255, cv2.THRESH_BINARY)[1]
+
+    # make the thresh_frame wider, more open
+    dil_frame = cv2.dilate(thresh_frame, None, iterations=2)
+    cv2.imshow('My video', dil_frame)
+
+    # Find contours
+    contours, check = cv2.findContours(dil_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Setting object size to check in case the object is a fake object
+    # So we will eliminate the white false positives areas
+
+    for contour in contours:
+        if cv2.contourArea(contour) < 5000:
+            continue
+        x, y, w, h = cv2.boundingRect(contour)
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
+
+    cv2.imshow('Video', frame)
+
+    # Create a keyboard object
     key = cv2.waitKey(1)
-# If the user press that button the video will stop
+    # If the user press that button the video will stop
     if key == ord('q'):
         break
 
