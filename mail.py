@@ -1,4 +1,5 @@
 import cv2
+import emailing
 
 # Blue Green Red
 
@@ -7,7 +8,9 @@ video = cv2.VideoCapture(0)
 # To wait for camera to load if needed
 # time.sleep(1)
 first_frame = None
+status_list = []
 while True:
+    status = 0
     check, frame = video.read()
     # Set the gray scale as it contains low amount of data compared to BlueGreenRed
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -38,9 +41,19 @@ while True:
         if cv2.contourArea(contour) < 5000:
             continue
         x, y, w, h = cv2.boundingRect(contour)
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
+        rectangle = cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
+        if rectangle.any():
+            status = 1
+
+    # Using status and values of 0 and 1 to check when the object will exit the camera so the email will be sent then
+    status_list.append(status)
+    status_list = status_list[-2:]
+    if status_list[0] == 1 and status_list[1] == 0:
+        emailing.send_email()
+
 
     cv2.imshow('Video', frame)
+
 
     # Create a keyboard object
     key = cv2.waitKey(1)
